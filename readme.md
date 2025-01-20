@@ -9,7 +9,8 @@ This will scrape the Epic Games Store for info on free games name and date, the 
 > [!WARNING]
 > NEVER PUT SENSITIVE DATA ON A PUBLIC REPOSITORY.
 
-> [!NOTE] Environment Variable
+> [!IMPORTANT]
+> Environment Variable
 > - RAWG Api Token
 >   - Use to get the game detail.
 >   - `RAWG_API`
@@ -29,5 +30,11 @@ The only use of the google cloud api is to store discord credential, update date
 
 This feature can be disabled by reading the [main](main.py) file.
 
-> [!NOTE] REQUIRED GOOGLE CLOUD API
+> [!NOTE]
+> REQUIRED GOOGLE CLOUD API
 > - [Firestore](https://cloud.google.com/firestore)
+
+## DEVELOPMENT CONTAINER
+
+> [!NOTE]
+> Reopen the project on a container using [vscode](https://code.visualstudio.com/)

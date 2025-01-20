@@ -1,0 +1,5 @@
+{
+  "cSpell.words": ["domcontentloaded", "Firestore", "rawg"],
+  "python.analysis.autoImportCompletions": true,
+  "python.analysis.typeCheckingMode": "off"
+}

@@ -1,3 +1,4 @@
+from dataclasses import dataclass, field
 from playwright.sync_api import sync_playwright
 from playwright_scrape import Scraper
 from firestore import database
@@ -6,6 +7,37 @@ import requests
 import os
 import re
 import html
+
+# Load variable on .env file
+if os.path.exists(".env"):
+    print(f"{"_"*40}\n")
+    print(f"{" Loading Environment Variable ":=^40}")
+    with open(".env", 'r') as file:
+        for line in file:
+            line = line.strip()
+            if line and not line.startswith("#"):
+                key, value = line.split("=")
+                os.environ[key] = value.strip()
+                print(f"{key}")
+    print(f"{" Loaded Environment Variable ":=^40}")
+    print(f"{"_"*40}\n")
+
+
+@dataclass
+class GameData:
+    url: str
+    name: str
+    date: str
+    image: str
+    description: str = field(default_factory="Failed to fetch game details.")
+
+
+@dataclass
+class webhook:
+    url: str
+    update_on: datetime
+    last_updated: datetime = field(default_factory=datetime.now(timezone.utc))
+
 
 base_url = "https://store.epicgames.com"
 free_games = []
@@ -30,33 +62,32 @@ def main():
             a_tags = data.query_selector_all("a")
 
         for data in a_tags:
-            temp = {}
-            temp['name'] = data.query_selector("h6").text_content()
-            temp['date'] = data.query_selector(
+            name = data.query_selector("h6").text_content()
+            date = data.query_selector(
                 'p').text_content().replace("Free ", "")
-            temp['link'] = f"{base_url}{data.get_attribute('href')}"
-            image_url = data.query_selector("img").get_attribute('data-image')
-            image_url = image_url.split("?")
-            temp['image'] = image_url[0]
-            free_games.append(temp)
+            link = f"{base_url}{data.get_attribute('href')}"
+            image_url = data.query_selector(
+                "img").get_attribute('data-image').split("?")
+            image = image_url[0]
+            free_games.append(GameData(link, name, date, image))
 
         scraper.close(f"{" Browser Closed ":=^40}")
 
     get_games_detail()
-    for url in webhooks:
-        sent_free_games(url)
+    # for url in webhooks:
+    #     sent_free_games(url)
 
-    for id in update_required:
-        clean_day = free_games[0]['date'].split(' ')
-        end_of_sale = f"{clean_day[2]} {
-            clean_day[3]} {datetime.now().year}"
-        parsed_date = datetime.strptime(end_of_sale, f'%b %d %Y')
+    # for id in update_required:
+    #     clean_day = free_games[0]['date'].split(' ')
+    #     end_of_sale = f"{clean_day[2]} {
+    #         clean_day[3]} {datetime.now().year}"
+    #     parsed_date = datetime.strptime(end_of_sale, f'%b %d %Y')
 
-        print(f'{f" Updating database ":=^40}')
-        db.update({
-            "last_sent": current_date,
-            "update_on": parsed_date,
-        }, id)
+    #     print(f'{f" Updating database ":=^40}')
+    #     db.update({
+    #         "last_sent": current_date,
+    #         "update_on": parsed_date,
+    #     }, id)
 
 
 def get_games_detail(games=None) -> dict:
@@ -140,18 +171,6 @@ def sent_free_games(webhook, free_games_data=free_games):
 
 
 if __name__ == "__main__":
-    # Load variable on .env file
-    if os.path.exists(".env"):
-        print(f"{" Loading Environment Variable ":=^40}")
-        with open(".env", 'r') as file:
-            for line in file:
-                line = line.strip()
-                if line and not line.startswith("#"):
-                    key, value = line.split("=")
-                    os.environ[key] = value.strip()
-                    print(f"Adding {key}")
-        print(f"{" Loaded Environment Variable ":=^40}")
-
     # Start of the program
     db = database('webhooks')
     webhook_url = db.read()
@@ -163,8 +182,11 @@ if __name__ == "__main__":
             update_date = value.get('update_on')
             if not update_date or update_date < current_date:
                 print(f"Update require.")
+                need_update = webhook(url=value.get(
+                    'url'), update_on=value.get("update_on"))
                 update_required.append(key)
-                webhooks.append(value.get('url'))
+                # webhooks.append(value.get('url'))
+                webhooks.append(need_update)
                 continue
             print(f"Update not needed.")
 

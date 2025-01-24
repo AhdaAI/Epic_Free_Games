@@ -118,7 +118,13 @@ def sent_FREE_GAMES(webhook, FREE_GAMES_data=FREE_GAMES):
 if __name__ == "__main__":
     DB = database('webhooks')  # * Google Cloud Feature
     GCP_DATA = DB.fetch_webhook()  # * Google Cloud Feature
-    main() if len(GCP_DATA) > 0 else exit()  # ! Main program
+
+    if len(GCP_DATA) > 0:  # ! Main program
+        main()
+    else:
+        print(f"{" Up-to-date ":=^40}")
+        exit()
+
     for webhook_detail in GCP_DATA:  # * Google Cloud Feature & Discord Webhook
         sent_FREE_GAMES(webhook_detail.get('url'))
         # * Cleaned data from Epic Store

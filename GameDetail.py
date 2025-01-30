@@ -46,19 +46,21 @@ def GameSearch(name: str) -> dict:
         print(result.json())
         return ErrorStatus(result.status_code, result.json())
 
-    return Data(result.status_code, result.json()).to_dict()
+    return {
+        "status_code": result.status_code,
+        "data": result.json()
+    }
 
 
 def get_games_detail(game) -> dict:
     print(f"Searching `{game['name']}` ...")
     data = GameSearch(game['name'])
+    if data.get("status_code") == 200:
+        data = data.get("data")
 
     description: str = ""
-    for desc in data['data']['description'].split("."):
-        desc = html.unescape(desc)
-        desc = re.sub(r"<.*?>", "", desc)
-        desc = desc.replace("\n", " ")
-        if len(description) + len(desc) < 400:
+    for desc in data.get("description_raw").split("."):
+        if len(description) + len(desc) < 1024:
             description = description + desc + "."
             continue
         break

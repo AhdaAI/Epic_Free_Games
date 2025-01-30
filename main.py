@@ -51,7 +51,9 @@ def main():
         print(f"{f' Starting web scraper ':=^40}")
         scraper = Scraper(p)
         scraper.set_header({
-            "User-Agent": "Chrome/131.0.0.0"
+            "User-Agent": "Chrome/131.0.0.0",
+            "Accept": "*/*",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.3"
         })
         scraper.url = f"{BASE_URL}/en-US/"
         scrape = scraper.scrape()
@@ -69,9 +71,20 @@ def main():
             image = image_url[0]
             FREE_GAMES.append(asdict(GameData(link, name, date, image)))
 
-        scraper.close(f"{" Browser Closed ":=^40}")
+        details = scraper.get_epic_store_data(FREE_GAMES[0].get("name"))
+        if not details.get('error'):
+            description = ""
+            detail = details.get("pages")[0]
+            data_detail = detail.get('data')
+            about = data_detail.get('about')
+            for desc in about.get('shortDescription').split("."):
+                if len(description + desc + ".") < 1024:
+                    description = description + desc + "."
+            FREE_GAMES[0]["description"] = description
+        else:
+            FREE_GAMES[0] = get_games_detail(FREE_GAMES[0])
 
-    FREE_GAMES[0] = get_games_detail(FREE_GAMES[0])
+        scraper.close(f"{" Browser Closed ":=^40}")
 
 
 def sent_FREE_GAMES(webhook, FREE_GAMES_data=FREE_GAMES):

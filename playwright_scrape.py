@@ -1,4 +1,5 @@
 from playwright.sync_api import Playwright
+import requests
 
 
 def log(func):
@@ -63,3 +64,22 @@ class Scraper:
             page.wait_for_selector(selector)
 
         return page
+
+    def get_epic_store_data(self, game_name: str):
+        if game_name.find(":") > -1:
+            game_name = game_name.replace(":", "")
+
+        game_name = game_name.lower()
+        game_name = game_name.replace(" ", "-")
+        epic_api_url = f"https://store-content-ipv4.ak.epicgames.com/api/en-US/content/products/{
+            game_name}"
+
+        data = requests.get(epic_api_url)
+        json_data = data.json()
+        if json_data.get("error"):
+            print(f"Failed to get details.")
+            print(f"{json_data}")
+            return None
+
+        print("Details found.")
+        return json_data

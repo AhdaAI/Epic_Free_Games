@@ -42,7 +42,7 @@ class database:
         doc_ref.update(data)
         return
 
-    def fetch_webhook(self) -> list[DocumentData]:
+    def fetch_webhook(self) -> list[dict]:
         if not self._collection:
             print("Error: Collection is not defined.")
             return

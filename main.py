@@ -1,10 +1,8 @@
-from dataclasses import asdict, dataclass, field
-from playwright.sync_api import sync_playwright
-from GameDetail import get_games_detail
-from playwright_scrape import Scraper
+from dataclasses import asdict, dataclass
 from GCP import database
 from datetime import datetime, timezone
 from EmbedBuilder import AuthorObject, Embed, FieldObject, ImageObject
+from scraper import get_epic_free_games
 import requests
 import os
 
@@ -24,16 +22,6 @@ if os.path.exists(".env"):
 
 
 @dataclass
-class GameData:
-    url: str
-    name: str
-    date: str
-    image: str
-    description: str = field(
-        default_factory=lambda: f"Failed to fetch game details.\nPlease check the store directly.")
-
-
-@dataclass
 class Updated_data:
     update_on: datetime
     last_sent: datetime = datetime.now(timezone.utc)
@@ -43,48 +31,29 @@ class Updated_data:
 
 
 BASE_URL = "https://store.epicgames.com"
-FREE_GAMES: list[GameData] = []
+FREE_GAMES: list[dict] = []
 
 
 def main():
-    with sync_playwright() as p:
-        print(f"{f' Starting web scraper ':=^40}")
-        scraper = Scraper(p)
-        scraper.set_header({
-            "User-Agent": "Chrome/131.0.0.0",
-            "Accept": "*/*",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.3"
-        })
-        scraper.url = f"{BASE_URL}/en-US/"
-        scrape = scraper.scrape()
+    DB = database('webhooks')  # * Google Cloud Feature
+    GCP_DATA = DB.fetch_webhook()  # * Google Cloud Feature
 
-        query_data = scrape.query_selector_all('section')
-        for data in query_data:
-            a_tags = data.query_selector_all("a")
+    if len(GCP_DATA) == 0:
+        print("Nothing to update.")
+        exit()
 
-        for data in a_tags:
-            name = data.query_selector("h6").text_content()
-            date = data.query_selector('p').text_content().replace("Free ", "")
-            link = f"{BASE_URL}{data.get_attribute('href')}"
-            image_url = data.query_selector(
-                "img").get_attribute('data-image').split("?")
-            image = image_url[0]
-            FREE_GAMES.append(asdict(GameData(link, name, date, image)))
+    games_list = get_epic_free_games()
+    for discounted_game in games_list:
+        print(f"Name : {discounted_game.get("name")}")
+        if discounted_game.get("discount_price") == 0:
+            FREE_GAMES.append(discounted_game)
 
-        details = scraper.get_epic_store_data(FREE_GAMES[0].get("name"))
-        if not details.get('error'):
-            description = ""
-            detail = details.get("pages")[0]
-            data_detail = detail.get('data')
-            about = data_detail.get('about')
-            for desc in about.get('shortDescription').split("."):
-                if len(description + desc + ".") < 1024:
-                    description = description + desc + "."
-            FREE_GAMES[0]["description"] = description
-        else:
-            FREE_GAMES[0] = get_games_detail(FREE_GAMES[0])
-
-        scraper.close(f"{" Browser Closed ":=^40}")
+    for data in GCP_DATA:
+        sent_FREE_GAMES(data.get("url"))
+        DB.update(
+            Updated_data(FREE_GAMES[0].get("end_date")).to_dict(),
+            data.get("id")
+        )
 
 
 def sent_FREE_GAMES(webhook, FREE_GAMES_data=FREE_GAMES):
@@ -92,21 +61,17 @@ def sent_FREE_GAMES(webhook, FREE_GAMES_data=FREE_GAMES):
 
     embed = Embed(
         title=FREE_GAMES_data[0]['name'],
-        description=f"*{FREE_GAMES_data[0]['date']}*",
+        description=f"*End Date : {
+            FREE_GAMES_data[0].get("end_date").strftime("%d %B %Y")}*",
         url=FREE_GAMES_data[0]['url'],
         color="1752220",  # ! see https://gist.github.com/thomasbnt/b6f455e2c7d743b796917fa3c205f812
         author=AuthorObject('Epic Free Games', BASE_URL),
-        image=ImageObject(FREE_GAMES_data[0]['image']),
+        image=ImageObject(FREE_GAMES_data[0]['image_url']),
         fields=[
             FieldObject(
                 "Details",
                 f"```{FREE_GAMES_data[0]['description']}```", False
             ),
-            FieldObject(
-                f"Upcoming Free Games [ {FREE_GAMES_data[1]['name']} ]",
-                f"*{FREE_GAMES_data[1]['date']}*",
-                False
-            )
         ]
     )
 
@@ -114,7 +79,7 @@ def sent_FREE_GAMES(webhook, FREE_GAMES_data=FREE_GAMES):
         "username": "Epic Free Games",
         "embeds": [
             embed.to_dict()
-        ]
+        ],
     }
 
     result = requests.post(webhook, json=data)
@@ -129,24 +94,4 @@ def sent_FREE_GAMES(webhook, FREE_GAMES_data=FREE_GAMES):
 
 
 if __name__ == "__main__":
-    DB = database('webhooks')  # * Google Cloud Feature
-    GCP_DATA = DB.fetch_webhook()  # * Google Cloud Feature
-
-    if len(GCP_DATA) > 0:  # ! Main program
-        main()
-    else:
-        print(f"{" Up-to-date ":=^40}")
-        exit()
-
-    for webhook_detail in GCP_DATA:  # * Google Cloud Feature & Discord Webhook
-        sent_FREE_GAMES(webhook_detail.get('url'))
-        # * Cleaned data from Epic Store
-        clean_day = FREE_GAMES[0]['date'].split(' ')
-        parsed_date = datetime.strptime(
-            f"{clean_day[2]} {clean_day[3]} {datetime.now().year}",
-            f'%b %d %Y'
-        )
-        DB.update(
-            Updated_data(parsed_date).to_dict(),
-            webhook_detail.get('id')
-        )
+    main()

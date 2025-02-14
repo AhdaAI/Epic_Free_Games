@@ -5,12 +5,42 @@ import os
 
 
 @dataclass
-class DocumentData:
-    id: str
+class Data:
     url: str
+    updateAt: datetime
 
-    def to_dict(self):
-        return asdict(self)
+    def __post_init__(self):
+        if self.updateAt.tzinfo is None or self.updateAt.tzinfo.utcoffset(self.updateAt) is None:
+            raise ValueError(
+                "Error: 'updateAt' must be in UTC (timezone-aware)")
+
+
+def GCP_Credentials() -> bool:
+    keywords = ["google", "gcp"]
+    print("Checking Google Credentials...")
+    if (os.getenv("GOOGLE_APPLICATION_CREDENTIALS") is not None):
+        return True
+
+    print("Checking current directory.")
+    print(f"Checking keywords {keywords}")
+    json_file = [f for f in os.listdir(".") if f.endswith(".json")]
+    filtered_json = [f for f in json_file if any(
+        keyword in f.lower() for keyword in keywords)]
+
+    if len(filtered_json) > 0 and len(filtered_json) == 1:
+        print(f"Found {filtered_json[0]}.")
+        creds_path = os.path.abspath(filtered_json[0])
+        os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = creds_path
+        return True
+    elif len(filtered_json) > 1:
+        print(f"Error: Found multiple candidate for 'GOOGLE_APPLICATION_CREDENTIALS'.")
+        print(
+            f"Please check the file name not containing the following keywords {keywords}.")
+        print(f"Note: This function only check for file extension '.json'")
+        return False
+    else:
+        print(f"Error: Could not found candidate for 'GOOGLE_APPLICATION_CREDENTIALS'.")
+        return False
 
 
 class database:
@@ -51,8 +81,8 @@ class database:
         result = []
         for doc in docs:
             data = doc.to_dict()
-            if not data.get('update_on') or data.get('update_on') <= datetime.now(timezone.utc):
-                result.append(DocumentData(doc.id, data.get('url')).to_dict())
+            if not data.get('updateAt') or data.get('updateAt') <= datetime.now(timezone.utc):
+                result.append({"id": doc.id, "url": data.get('url')})
                 continue
 
         return result

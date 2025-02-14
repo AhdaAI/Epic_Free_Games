@@ -33,12 +33,16 @@ def GCP_Credentials() -> bool:
         os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = creds_path
         return True
     elif len(filtered_json) > 1:
+        print(f"{"_"*40}\n")
+
         print(f"Error: Found multiple candidate for 'GOOGLE_APPLICATION_CREDENTIALS'.")
         print(
             f"Please check the file name not containing the following keywords {keywords}.")
         print(f"Note: This function only check for file extension '.json'")
         return False
     else:
+        print(f"{"_"*40}\n")
+
         print(f"Error: Could not found candidate for 'GOOGLE_APPLICATION_CREDENTIALS'.")
         return False
 

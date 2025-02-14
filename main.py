@@ -1,33 +1,25 @@
-from dataclasses import asdict, dataclass
-from GCP import Data, GCP_Credentials, database
+from dataclasses import asdict
 from datetime import datetime, timezone
+from GCP import Data, GCP_Credentials, database
 from EmbedBuilder import AuthorObject, Embed, FieldObject, ImageObject
 from scraper import get_epic_free_games
 import requests
 import os
 
-# Load variable on .env file
-if os.path.exists(".env"):
-    print(f"{"_"*40}\n")
-    print(f"{" Loading Environment Variable ":=^40}")
-    with open(".env", 'r') as file:
-        for line in file:
-            line = line.strip()
-            if line and not line.startswith("#"):
-                key, value = line.split("=")
-                os.environ[key] = value.strip()
-                print(f"{key}")
-    print(f"{" Loaded Environment Variable ":=^40}")
-    print(f"{"_"*40}\n")
-
 
 BASE_URL = "https://store.epicgames.com"
 FREE_GAMES: list[dict] = []
+GCP_DATA = []
 
 
 def main():
     DB = database('webhooks')  # * Google Cloud Feature
-    GCP_DATA = DB.fetch_webhook()  # * Google Cloud Feature
+    DATAS = DB.read()
+    for data in DATAS:
+        for key, value in data.items():
+            update = value.get("updateAt")
+            if not update or update <= datetime.now(timezone.utc):
+                GCP_DATA.append(data)
 
     if len(GCP_DATA) == 0:
         print("Nothing to update.")
@@ -40,11 +32,12 @@ def main():
             FREE_GAMES.append(discounted_game)
 
     for data in GCP_DATA:
-        sent_webhook(data.get("url"), FREE_GAMES[0])
-        DB.update(
-            asdict(Data(data.get("url"), FREE_GAMES[0].get("end_date"))),
-            data.get("id")
-        )
+        for key, value in data.items():
+            sent_webhook(value.get("url"), FREE_GAMES[0])
+            DB.update(
+                asdict(Data(value.get("url"), FREE_GAMES[0].get("end_date"))),
+                key
+            )
 
 
 def sent_webhook(url, data) -> bool:
@@ -81,12 +74,29 @@ def sent_webhook(url, data) -> bool:
         print(err)
         return False
     else:
-        print(f"Payload delivered successfully.")
         print(f"{f" code {result.status_code}. ":=^40}")
+        print(f"Payload delivered successfully.")
         return True
 
 
+# Load variable on .env file
+def load_env():
+    if os.path.exists(".env"):
+        print(f"{"_"*40}\n")
+        print(f"{" Loading Environment Variable ":=^40}")
+        with open(".env", 'r') as file:
+            for line in file:
+                line = line.strip()
+                if line and not line.startswith("#"):
+                    key, value = line.split("=")
+                    os.environ[key] = value.strip()
+                    print(f"{key}")
+        print(f"{" Loaded Environment Variable ":=^40}")
+        print(f"{"_"*40}\n")
+
+
 if __name__ == "__main__":
+    load_env()
     if not GCP_Credentials():
         exit(1)
     main()

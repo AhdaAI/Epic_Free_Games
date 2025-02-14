@@ -1,4 +1,5 @@
 from dataclasses import asdict, dataclass
+from typing import Optional
 from google.cloud import firestore
 from datetime import datetime, timezone
 import os
@@ -7,9 +8,13 @@ import os
 @dataclass
 class Data:
     url: str
-    updateAt: datetime
+    updateAt: Optional[datetime]
 
     def __post_init__(self):
+        if self.updateAt is None:
+            print("Note: updateAt has value 'None'.")
+            return
+
         if self.updateAt.tzinfo is None or self.updateAt.tzinfo.utcoffset(self.updateAt) is None:
             raise ValueError(
                 "Error: 'updateAt' must be in UTC (timezone-aware)")
@@ -27,6 +32,7 @@ def GCP_Credentials() -> bool:
     filtered_json = [f for f in json_file if any(
         keyword in f.lower() for keyword in keywords)]
 
+    # Error checking
     if len(filtered_json) > 0 and len(filtered_json) == 1:
         print(f"Found {filtered_json[0]}.")
         creds_path = os.path.abspath(filtered_json[0])
@@ -44,15 +50,17 @@ def GCP_Credentials() -> bool:
         print(f"{"_"*40}\n")
 
         print(f"Error: Could not found candidate for 'GOOGLE_APPLICATION_CREDENTIALS'.")
+        print(
+            f"Please check if file contain the following keywords {keywords}.")
         return False
 
 
 class database:
     def __init__(self, collection: str = None):
-        if not os.getenv("PROJECT_ID"):
-            print(f"[!] Database cannot be use [!]")
-            print(f"{" PROJECT_ID not found ":=^40}")
+        if os.getenv("PROJECT_ID") is None or os.getenv("DATABASE_NAME") is None:
+            print("Error: Please check your '.env' file.")
             return None
+
         self._db = firestore.Client(
             project=os.getenv("PROJECT_ID"),
             database=os.getenv('DATABASE_NAME'))
@@ -65,7 +73,9 @@ class database:
         result = []
         for doc in docs:
             temp = {}
-            temp[doc.id] = doc.to_dict()
+            doc_dict = doc.to_dict()
+            temp[doc.id] = asdict(
+                Data(doc_dict.get("url"), doc_dict.get("updateAt")))
             result.append(temp)
         return result
 
@@ -75,18 +85,3 @@ class database:
         ).document(document_id)
         doc_ref.update(data)
         return
-
-    def fetch_webhook(self) -> list[dict]:
-        if not self._collection:
-            print("Error: Collection is not defined.")
-            return
-
-        docs = self._db.collection(self._collection).stream()
-        result = []
-        for doc in docs:
-            data = doc.to_dict()
-            if not data.get('updateAt') or data.get('updateAt') <= datetime.now(timezone.utc):
-                result.append({"id": doc.id, "url": data.get('url')})
-                continue
-
-        return result

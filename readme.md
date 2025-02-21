@@ -11,7 +11,7 @@ This will scrape the Epic Games Store for info on free games name and date, the 
 
 > [!IMPORTANT]
 > Environment Variable
-> - RAWG Api Token
+> - RAWG Api Token [ Optional ]
 >   - Use to get the game detail.
 >   - `RAWG_API`
 > - Google Application Credential

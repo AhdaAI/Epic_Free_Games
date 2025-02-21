@@ -31,7 +31,7 @@ def get_epic_free_games() -> List[dict]:
         if not promotions:
             continue
 
-        slug = game.get("urlSlug")
+        slug = game.get("productSlug")
         game_url = f"https://store.epicgames.com/en-US/p/{slug}"
         data_game = game_data(
             name=game.get("title"),

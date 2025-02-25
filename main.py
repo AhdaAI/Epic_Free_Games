@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from GCP import Data, GCP_Credentials, database
 from EmbedBuilder import AuthorObject, Embed, FieldObject, ImageObject
 from scraper import get_epic_free_games
+from pyfiglet import figlet_format
 import requests
 import os
 
@@ -93,6 +94,7 @@ def load_env():
 
 
 if __name__ == "__main__":
+    print(figlet_format("E G S", 'roman'))
     load_env()
     if not GCP_Credentials():
         exit(1)

@@ -4,6 +4,8 @@ import requests
 from datetime import datetime
 from dateutil import parser
 
+URL = "https://store-site-backend-static-ipv4.ak.epicgames.com/freeGamesPromotions?locale=en-US&country=ID&allowCountries=ID"
+
 
 @dataclass
 class game_data:
@@ -20,11 +22,9 @@ class game_data:
 
 
 def get_epic_free_games() -> List[dict]:
-    url = "https://store-site-backend-static-ipv4.ak.epicgames.com/freeGamesPromotions?locale=en-US&country=ID&allowCountries=ID"
-
     games = []
 
-    data = requests.get(url)
+    data = requests.get(URL)
     data = data.json()
     for game in data['data']['Catalog']['searchStore']['elements']:
         rules = game['price']['lineOffers'][0]['appliedRules']

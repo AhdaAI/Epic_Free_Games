@@ -33,7 +33,7 @@ def main():
 
     for data in GCP_DATA:
         for key, value in data.items():
-            sent_webhook(value.get("url"), FREE_GAMES[0])
+            sent_webhook(value.get("url"), FREE_GAMES)
             DB.update(
                 asdict(Data(value.get("url"), FREE_GAMES[0].get("end_date"))),
                 key
@@ -43,27 +43,30 @@ def main():
 def sent_webhook(url, data) -> bool:
     webhook_username = "Epic Free Games"
 
-    embed = embed = Embed(
-        title=data['name'],
-        description=f"*End Date : {
-            data.get("end_date").strftime("%d %B %Y")}*",
-        url=data['url'],
-        color="1752220",  # ! see https://gist.github.com/thomasbnt/b6f455e2c7d743b796917fa3c205f812
-        author=AuthorObject('Epic Free Games', BASE_URL),
-        image=ImageObject(data['image_url']),
-        fields=[
-            FieldObject(
-                "Details",
-                f"```{data['description']}```", False
-            ),
-        ]
-    )
+    embeds_list = []
+    for dat in data:
+        embed = embed = Embed(
+            title=dat['name'],
+            description=f"""*End Date : {dat.get("end_date").strftime("%d %B %Y")}*
+            **Original Price : {dat.get("original_price")}**""",
+            url=dat['url'],
+            color="1752220",  # ! see https://gist.github.com/thomasbnt/b6f455e2c7d743b796917fa3c205f812
+            author=AuthorObject('Epic Free Games', BASE_URL),
+            image=ImageObject(dat['image_url']),
+            fields=[
+                FieldObject(
+                    "Details",
+                    f"```{dat['description']}```",
+                    False
+                ),
+            ]
+        )
+
+        embeds_list.append(embed.to_dict())
 
     data = {
         "username": webhook_username,
-        "embeds": [
-            embed.to_dict()
-        ],
+        "embeds": embeds_list,
     }
 
     result = requests.post(url, json=data)

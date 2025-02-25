@@ -27,8 +27,8 @@ def get_epic_free_games() -> List[dict]:
     data = requests.get(url)
     data = data.json()
     for game in data['data']['Catalog']['searchStore']['elements']:
-        promotions = game.get('promotions')
-        if not promotions:
+        rules = game['price']['lineOffers'][0]['appliedRules']
+        if len(rules) == 0:
             continue
 
         slug = game.get("productSlug")
@@ -40,32 +40,9 @@ def get_epic_free_games() -> List[dict]:
             url=game_url,
             image_url=game.get("keyImages")[0].get("url"),
             discount_price=game['price']['totalPrice']['discountPrice'],
-            original_price=game['price']['totalPrice']['originalPrice']
+            original_price=game['price']['totalPrice']['fmtPrice']['originalPrice']
         )
-        promotional_offer = promotions.get("promotionalOffers")[
-            0] if len(promotions.get("promotionalOffers")) > 0 else []
-        upcoming_promotional_offer = promotions.get(
-            'upcomingPromotionalOffers')[0] if len(promotions.get("upcomingPromotionalOffers")) > 0 else []
-
-        # * Getting dates
-        if len(promotional_offer) > 0:
-            data_game.end_date = parser.isoparse(
-                promotional_offer.get("promotionalOffers")[0].get("endDate"))
-            data_game.start_date = parser.isoparse(
-                promotional_offer.get("promotionalOffers")[0].get("startDate"))
-            data_game.active_promotion = True
-
-        # * Getting dates
-        if len(upcoming_promotional_offer) > 0:
-            data_game.end_date = parser.isoparse(
-                upcoming_promotional_offer.get(
-                    "promotionalOffers")[0].get("endDate")
-            )
-            data_game.start_date = parser.isoparse(
-                upcoming_promotional_offer.get(
-                    "promotionalOffers")[0].get("startDate")
-            )
-            data_game.active_promotion = False
+        data_game.end_date = parser.isoparse(rules[0].get('endDate'))
 
         games.append(asdict(data_game))
 

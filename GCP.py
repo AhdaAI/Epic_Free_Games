@@ -22,12 +22,9 @@ class Data:
 
 def GCP_Credentials() -> bool:
     keywords = ["google", "gcp"]
-    print("Checking Google Credentials...")
     if (os.getenv("GOOGLE_APPLICATION_CREDENTIALS") is not None):
         return True
 
-    print("Checking current directory.")
-    print(f"Checking keywords {keywords}")
     json_file = [f for f in os.listdir(".") if f.endswith(".json")]
     filtered_json = [f for f in json_file if any(
         keyword in f.lower() for keyword in keywords)]

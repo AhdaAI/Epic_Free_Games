@@ -27,7 +27,6 @@ def main():
 
     games_list = get_epic_free_games()
     for discounted_game in games_list:
-        print(f"Name : {discounted_game.get("name")}")
         if discounted_game.get("discount_price") == 0:
             FREE_GAMES.append(discounted_game)
 
@@ -85,17 +84,12 @@ def sent_webhook(url, data) -> bool:
 # Load variable on .env file
 def load_env():
     if os.path.exists(".env"):
-        print(f"{"_"*40}\n")
-        print(f"{" Loading Environment Variable ":=^40}")
         with open(".env", 'r') as file:
             for line in file:
                 line = line.strip()
                 if line and not line.startswith("#"):
                     key, value = line.split("=")
                     os.environ[key] = value.strip()
-                    print(f"{key}")
-        print(f"{" Loaded Environment Variable ":=^40}")
-        print(f"{"_"*40}\n")
 
 
 if __name__ == "__main__":

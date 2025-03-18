@@ -21,7 +21,7 @@ class game_data:
     active_promotion: bool = False
 
 
-def get_epic_free_games() -> List[dict]:
+def get_epic_free_games() -> List[game_data]:
     games = []
 
     data = requests.get(URL)
@@ -32,6 +32,9 @@ def get_epic_free_games() -> List[dict]:
             continue
 
         slug = game.get("productSlug")
+        if not slug: # * Check for null
+            slug = game.get("offerMappings")[0].get("pageSlug")
+
         game_url = f"https://store.epicgames.com/en-US/p/{slug}"
         data_game = game_data(
             name=game.get("title"),

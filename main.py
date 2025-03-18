@@ -2,7 +2,7 @@ from dataclasses import asdict
 from datetime import datetime, timezone
 from GCP import Data, GCP_Credentials, database
 from EmbedBuilder import AuthorObject, Embed, FieldObject, ImageObject
-from scraper import get_epic_free_games
+from scraper import game_data, get_epic_free_games
 from pyfiglet import figlet_format
 import requests
 import os
@@ -26,7 +26,7 @@ def main():
         print("Nothing to update.")
         exit()
 
-    games_list = get_epic_free_games()
+    games_list: list[game_data] = get_epic_free_games()
     for discounted_game in games_list:
         if discounted_game.get("discount_price") == 0:
             FREE_GAMES.append(discounted_game)
@@ -45,7 +45,7 @@ def sent_webhook(url, data) -> bool:
 
     embeds_list = []
     for dat in data:
-        embed = embed = Embed(
+        embed = Embed(
             title=dat['name'],
             description=f"""*End Date : {dat.get("end_date").strftime("%d %B %Y")}*
             **Original Price : {dat.get("original_price")}**""",

@@ -27,8 +27,7 @@ def get_epic_free_games() -> List[game_data]:
     data = requests.get(URL)
     data = data.json()
     for game in data['data']['Catalog']['searchStore']['elements']:
-        rules = game['price']['lineOffers'][0]['appliedRules']
-        if len(rules) == 0:
+        if game['price']['totalPrice']['discountPrice'] != 0:
             continue
 
         slug = game.get("productSlug")
@@ -45,7 +44,11 @@ def get_epic_free_games() -> List[game_data]:
             discount_price=game['price']['totalPrice']['discountPrice'],
             original_price=game['price']['totalPrice']['fmtPrice']['originalPrice']
         )
-        data_game.end_date = parser.isoparse(rules[0].get('endDate'))
+        
+        expiry = game["expiryDate"]
+        if not expiry:
+            continue
+        data_game.end_date = parser.isoparse(expiry)
 
         games.append(asdict(data_game))
 
